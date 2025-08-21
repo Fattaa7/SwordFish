@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from app.api import workspace_routes
 from app.api import user_routes
+from app.api import source_routes
+from app.api import document_routes
 from app.core.config import settings
 from app.db.database import engine, Base
 
@@ -17,6 +19,8 @@ app = FastAPI(
 
 app.include_router(user_routes.router)
 app.include_router(workspace_routes.router)
+app.include_router(source_routes.router)
+app.include_router(document_routes.router)
 
 
 @app.get("/")

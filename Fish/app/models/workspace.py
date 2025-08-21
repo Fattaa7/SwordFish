@@ -16,3 +16,4 @@ class Workspace(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     users = relationship("User", back_populates="workspaces")
+    sources = relationship("Source", back_populates="workspace")
