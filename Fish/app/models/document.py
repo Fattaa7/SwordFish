@@ -13,6 +13,7 @@ class Document(Base):
     title = Column(String, nullable=False, default="Title")
     language = Column(String, nullable=True)  # e.g., "en", "fr", "es"
     meta = Column(JSONB, nullable=True)  # JSONB column for storing metadata
+    uri_path = Column(String, nullable=True)  # Path to the document in storage
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

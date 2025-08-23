@@ -1,4 +1,6 @@
 from sqlalchemy.orm import Session
+from app.utility.text_extractor import convert_file_to_markdown
+from app.repositories.source_repository import SourceRepository
 from app.repositories.document_repository import DocumentRepository
 from app.schemas.document_schema import DocumentCreate
 from app.repositories.workspace_repository import WorkspaceRepository
@@ -6,15 +8,42 @@ from app.schemas.user_schema import UserCreate
 from app.core.auth.password import hash_password, verify_password
 from app.schemas.token_schema import Token
 from app.core.auth.jwt import create_access_token
+from pathlib import Path
+
 
 class DocumentService:
     @staticmethod
     def create(db: Session, document: DocumentCreate, source_id: int, owner_id: int):
-        repo = DocumentRepository(db)
+        ### First, Parse the source to extract Text ###
+        try:
+            source_path = Path(document.source_path)
+            if not source_path.exists():
+                raise FileNotFoundError(f"Source file not found: {source_path}")
 
+            destination_file = source_path.with_suffix(".md")
+            convert_file_to_markdown(source_path, destination_file)
+            destination_file = str(destination_file.absolute())
+        except Exception as e:
+            raise ValueError(f"Failed to process the document {document.source_path}: {e}") from e
+        
+
+        destination_file = str(destination_file)
+        print(f"Converted document saved to: {destination_file}")
+
+        repo = DocumentRepository(db)
+        SourceRepo = SourceRepository(db)
+
+        # Check if source exists and user has permission
+        source = SourceRepo.get_by_id(source_id)
+        if not source or source.workspace.owner_id != owner_id:
+            raise ValueError("Source not found or you do not have permission to access it")
+        
         # Create document via repository
-        return repo.create(document=document, source_id=source_id)
+        return repo.create(document=document, source_id=source_id, uri_path=destination_file)
     
+
+
+
     @staticmethod
     def get_document(db: Session, workspace_id: int, document_id: int, owner_id: int):
         """Get a specific document by ID within a workspace"""

@@ -19,40 +19,6 @@ from typing import List
 
 
 class SourceService:
-    @staticmethod
-    def create(db: Session, workspace_id: int, source: SourceCreate, owner_id: int) -> SourceResponse:
-        repo = SourceRepository(db)
-
-        # Check if workspace exists and user has permission
-        workspace = WorkspaceRepository(db).get_by_id(workspace_id)
-        if not workspace or workspace.owner_id != owner_id:
-            raise ValueError("Workspace not found or you do not have permission to access it")
-
-        # Create source via repository
-        created = repo.create(source=source, workspace_id=workspace_id)
-
-        if not created:
-            raise ValueError("Failed to create source")
-
-        # Extract metadata from the source
-        source_meta = SourceService._extract_source_metadata(created, source)
-        print(f"Extracted metadata: {source_meta}")
-
-        # Create document creation request
-        req = DocumentCreate(
-            title=source_meta["title"],
-            language=source_meta["language"],
-            meta=MetaModel(
-                author=source_meta["meta"]["author"],
-                pages=source_meta["meta"]["pages"],
-                tags=source_meta["meta"]["tags"]
-            )
-        )
-
-        # Create document associated with the source
-        DocumentService.create(db, document=req, source_id=created.id, owner_id=owner_id)
-
-        return created
 
     @staticmethod
     def upload_file(db: Session, workspace_id: int, file: UploadFile, owner_id: int) -> SourceResponse:
@@ -66,32 +32,62 @@ class SourceService:
                 temp_path = temp_file.name
             
             # Create source data
-            source_data = SourceCreate(
-                type=SourceType.FILE,
-                storage_path=temp_path,
-                url=None
-            )
+            source_data = SourceCreate(type=SourceType.FILE, storage_path=temp_path, url=None)
             
             # Create source and extract metadata
-            return SourceService.create(db, workspace_id, source_data, owner_id)
+            return SourceService.create_source(db, workspace_id, source_data, owner_id)
             
         except Exception as e:
             # Clean up temporary file if it exists
             if temp_path and os.path.exists(temp_path):
                 os.unlink(temp_path)
             raise e
+        
+    @staticmethod
+    def create_source(db: Session, workspace_id: int, source: SourceCreate, owner_id: int) -> SourceResponse:
+        repo = SourceRepository(db)
+
+        # Check if workspace exists and user has permission
+        workspace = WorkspaceRepository(db).get_by_id(workspace_id)
+        if not workspace or workspace.owner_id != owner_id:
+            raise ValueError("Workspace not found or you do not have permission to access it")
+
+        # Create source via repository
+        created = repo.create(source=source, workspace_id=workspace_id)
+
+
+
+        ############# Create associated document #############
+        if not created:
+            raise ValueError("Failed to create source")
+
+        # Extract metadata from the source
+        source_meta = SourceService._extract_source_metadata(created, source)
+        print(f"Extracted metadata: {source_meta}")
+
+        # Create document creation request
+        document = DocumentCreate(
+            title=source_meta["title"],
+            language=source_meta["language"],
+            source_path=source.storage_path,
+            meta=MetaModel(
+                author=source_meta["meta"]["author"],
+                pages=source_meta["meta"]["pages"],
+                tags=source_meta["meta"]["tags"]
+            )
+        )
+
+        # Create document associated with the source
+        DocumentService.create(db, document=document, source_id=created.id, owner_id=owner_id)
+
+        return created
 
     @staticmethod
     def create_from_url(db: Session, workspace_id: int, url: str, owner_id: int) -> SourceResponse:
         """Create a source from a URL"""
         try:
-            source_data = SourceCreate(
-                type=SourceType.URL,
-                url=url,
-                storage_path=None
-            )
-            
-            return SourceService.create(db, workspace_id, source_data, owner_id)
+            source_data = SourceCreate(type=SourceType.URL, url=url, storage_path=None)
+            return SourceService.create_source(db, workspace_id, source_data, owner_id)
             
         except Exception as e:
             raise e

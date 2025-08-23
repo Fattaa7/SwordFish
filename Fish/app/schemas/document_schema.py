@@ -11,12 +11,14 @@ class DocumentCreate(BaseModel):
     title: Optional[str] = None 
     language: str
     meta: Optional[MetaModel]
+    source_path: Optional[str] = None
 
 class DocumentResponse(BaseModel):
     id: int
     source_id: int
     title: str
     language: str
+    document_path: str
     meta: Optional[MetaModel]
     created_at: datetime
 

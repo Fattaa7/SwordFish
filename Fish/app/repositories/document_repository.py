@@ -12,11 +12,8 @@ class DocumentRepository:
     def get_by_source_id(self, source_id: int):
         return self.db.query(Document).filter(Document.source_id == source_id).first()
 
-    def create(self, document: DocumentCreate, source_id: int) -> Document:
-        db_document = Document(
-            source_id=source_id,
-            title=document.title or "Untitled Document",
-            language=document.language,
+    def create(self, document: DocumentCreate, source_id: int, uri_path: str) -> Document:
+        db_document = Document(source_id=source_id, title=document.title or "Untitled Document", language=document.language, uri_path=uri_path,
             meta=document.meta.dict() if document.meta else None
         )
         self.db.add(db_document)
