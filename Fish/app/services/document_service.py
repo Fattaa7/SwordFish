@@ -4,10 +4,7 @@ from app.repositories.source_repository import SourceRepository
 from app.repositories.document_repository import DocumentRepository
 from app.schemas.document_schema import DocumentCreate
 from app.repositories.workspace_repository import WorkspaceRepository
-from app.schemas.user_schema import UserCreate
-from app.core.auth.password import hash_password, verify_password
-from app.schemas.token_schema import Token
-from app.core.auth.jwt import create_access_token
+from app.services.chunk_service import ChunkService
 from pathlib import Path
 
 
@@ -21,8 +18,13 @@ class DocumentService:
                 raise FileNotFoundError(f"Source file not found: {source_path}")
 
             destination_file = source_path.with_suffix(".md")
-            convert_file_to_markdown(source_path, destination_file)
+            md_text = convert_file_to_markdown(str(source_path), str(destination_file))
+            
+            if not md_text:
+                raise ValueError("Failed to extract text from the document")
+                
             destination_file = str(destination_file.absolute())
+            
         except Exception as e:
             raise ValueError(f"Failed to process the document {document.source_path}: {e}") from e
         
@@ -30,8 +32,8 @@ class DocumentService:
         destination_file = str(destination_file)
         print(f"Converted document saved to: {destination_file}")
 
-        repo = DocumentRepository(db)
         SourceRepo = SourceRepository(db)
+        repo = DocumentRepository(db)
 
         # Check if source exists and user has permission
         source = SourceRepo.get_by_id(source_id)
@@ -39,8 +41,12 @@ class DocumentService:
             raise ValueError("Source not found or you do not have permission to access it")
         
         # Create document via repository
-        return repo.create(document=document, source_id=source_id, uri_path=destination_file)
-    
+        Doc = repo.create(document=document, source_id=source_id, uri_path=destination_file)
+        # Create chunks for the document
+        
+        ChunkService.create_chunks_for_document(db, Doc.id, destination_file)
+
+        return Doc
 
 
 

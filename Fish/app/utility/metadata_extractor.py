@@ -118,7 +118,7 @@ class MetadataExtractor:
                 text = first_page.extract_text() or ""
                 if text:
                     lines = [line.strip() for line in text.split("\n") if line.strip()]
-                    if lines:
+                    if lines:  # Check if lines is not empty before accessing lines[0]
                         title = lines[0][:100]
 
             return {

@@ -26,7 +26,12 @@ class SourceService:
         temp_path = None
         try:
             # Create a temporary file to store the upload
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            # Handle case where filename might be None or have no extension
+            file_extension = ""
+            if file.filename:
+                file_extension = os.path.splitext(file.filename)[1] or ""
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
                 # Copy the uploaded file to the temporary file
                 shutil.copyfileobj(file.file, temp_file)
                 temp_path = temp_file.name

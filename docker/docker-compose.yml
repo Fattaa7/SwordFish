@@ -42,6 +42,8 @@ services:
       - /app/__pycache__
       - /app/**/__pycache__
       - /app/**/*.pyc
+    env_file:
+      - ../Fish/.env
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
