@@ -6,7 +6,7 @@ class SourceRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_id(self, source_id: int):
+    def get_by_id(self, source_id: int) -> SourceResponse:
         return self.db.query(Source).filter(Source.id == source_id).first()
 
     def get_by_workspace_id(self, workspace_id: int):

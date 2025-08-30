@@ -20,7 +20,7 @@ def ask_openai(query: str, context: list[str]) -> str:
     system_messages.insert(0, {
         "role": "system",
         "content": "Only use the context as reference and don't get any data from outside of it, \
-            though you can use logic to explain it using the info shared with you. provide citations for everything you use, \
+            provide citations for everything you use, \
                 and add the citations again at the end of the answer along with reference title. Never point to the context above directly and only use it as reference for you, and provide citations."
     })
 

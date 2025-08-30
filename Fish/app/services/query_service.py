@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from app.utility.rerank import rerank
 from app.schemas.answer_schema import AnswerResponse
 from app.models.answer import Answer
 from app.repositories.answer_repository import AnswerRepository
@@ -9,6 +10,7 @@ from app.repositories.conversation_repository import ConversationRepository
 from app.utility.OpenAi.embedding import get_chunk_embedding
 from app.utility.OpenAi.prompt import ask_openai
 from app.models.conversation import Conversation
+
 
 
 class QueryService:
@@ -33,11 +35,21 @@ class QueryService:
 
         chunkRepo = ChunkRepository(db)
         similar_chunks = chunkRepo.search_similar_chunks(query_embedding, workspace_id)
-        print(f"Found {len(similar_chunks)} similar chunks")
-        if not similar_chunks:
+
+        list_of_texts = [chunk.text for chunk in similar_chunks]
+        reranked_results = rerank(queryResponse.query_text, list_of_texts)
+        print(f"Reranked Results: {reranked_results}")
+        # exlude chunks with score less than 0.5 but at least keep the highest 2 scored chunks
+        filtered_chunks = []
+        for rank in reranked_results.results:
+            if rank.relevance_score >= 0.05 or len(filtered_chunks) < 2:
+                filtered_chunks.append(similar_chunks[rank.index])
+
+        print(f"Found {len(filtered_chunks)} similar chunks")
+        if not filtered_chunks:
             return {"query": query, "response": "No relevant information found in the workspace."}
         # turn to list of texts
-        prepared_chunks = [f"{chunk.text}\n\n{chunk.title} (Page {chunk.page_number})" for chunk in similar_chunks]
+        prepared_chunks = [f"{chunk.text}\n\n{chunk.title} (Page {chunk.page_number})" for chunk in filtered_chunks]
 
         print(f"Similar Chunks: {prepared_chunks}")
         
@@ -52,7 +64,7 @@ class QueryService:
                 "page_number": chunk.page_number,
                 "source_uri": chunk.source_uri
             }
-            for chunk in similar_chunks
+            for chunk in filtered_chunks
         ]
 
         answer = Answer(
