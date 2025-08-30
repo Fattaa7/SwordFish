@@ -6,13 +6,16 @@ class DocumentRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_id(self, document_id: int):
+    def get_by_id(self, document_id: int) -> Document | None:
         return self.db.query(Document).filter(Document.id == document_id).first()
 
-    def get_by_source_id(self, source_id: int):
+    def get_by_id_with_source(self, document_id: int) -> Document | None:
+        return self.db.query(Document).join(Document.source).filter(Document.id == document_id).first()
+
+    def get_by_source_id(self, source_id: int) -> Document | None:
         return self.db.query(Document).filter(Document.source_id == source_id).first()
 
-    def create(self, document: DocumentCreate, source_id: int, uri_path: str) -> Document:
+    def create(self, document: DocumentCreate, source_id: int, uri_path: str) -> DocumentResponse:
         db_document = Document(source_id=source_id, title=document.title or "Untitled Document", language=document.language, uri_path=uri_path,
             meta=document.meta.dict() if document.meta else None
         )
@@ -21,7 +24,7 @@ class DocumentRepository:
         self.db.refresh(db_document)
         return db_document
 
-    def update(self, document_id: int, document: DocumentCreate) -> Document:
+    def update(self, document_id: int, document: DocumentCreate) -> DocumentResponse:
         db_document = self.get_by_id(document_id)
         if not db_document:
             raise ValueError("Document not found")

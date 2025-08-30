@@ -18,7 +18,7 @@ class DocumentResponse(BaseModel):
     source_id: int
     title: str
     language: str
-    document_path: str
+    uri_path: str
     meta: Optional[MetaModel]
     created_at: datetime
 

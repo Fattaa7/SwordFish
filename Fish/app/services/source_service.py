@@ -16,6 +16,7 @@ import tempfile
 import shutil
 from fastapi import UploadFile
 from typing import List
+from fastapi.responses import FileResponse
 
 
 class SourceService:
@@ -86,6 +87,18 @@ class SourceService:
         DocumentService.create(db, document=document, source_id=created.id, owner_id=owner_id)
 
         return created
+
+
+    @staticmethod
+    def download_source(db: Session, source_id: int, workspace_id: int) -> FileResponse:
+        """Download the source file by ID"""
+        repo = SourceRepository(db)
+        source = repo.get_by_id(source_id)
+        if not source or not source.storage_path or not os.path.exists(source.storage_path):
+            raise ValueError("Source not found or file does not exist")
+        
+        return FileResponse(source.storage_path, media_type="application/pdf", filename=str(source.id)+ ".pdf")
+    
 
     @staticmethod
     def create_from_url(db: Session, workspace_id: int, url: str, owner_id: int) -> SourceResponse:

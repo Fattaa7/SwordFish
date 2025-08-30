@@ -44,9 +44,12 @@ class DocumentService:
         Doc = repo.create(document=document, source_id=source_id, uri_path=destination_file)
         # Create chunks for the document
         
-        ChunkService.create_chunks_for_document(db, Doc.id, destination_file)
+        ChunkService.create_chunks_for_document(db, Doc.id, destination_file, source_path, document.title)
 
+        print(f"Document created with ID: {Doc.id}")
+        print(f"Document title: {Doc.title}")
         return Doc
+    
 
 
 

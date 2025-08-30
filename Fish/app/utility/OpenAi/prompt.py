@@ -19,7 +19,9 @@ def ask_openai(query: str, context: list[str]) -> str:
     system_messages = [{"role": "system", "content": c} for c in context]
     system_messages.insert(0, {
         "role": "system",
-        "content": "Only use the context as reference and don't get any data from outside of it, though you can use logic to explain it using the info shared with you. provide citations for everything you use."
+        "content": "Only use the context as reference and don't get any data from outside of it, \
+            though you can use logic to explain it using the info shared with you. provide citations for everything you use, \
+                and add the citations again at the end of the answer along with reference title. Never point to the context above directly and only use it as reference for you, and provide citations."
     })
 
     # Add user query
@@ -42,5 +44,5 @@ def ask_openai(query: str, context: list[str]) -> str:
 
         # Get structured entities
         final_response = stream.get_final_response()
-        entities = final_response.output[0].content[0].parsed
+        entities = final_response.output[0].content[0].text
         return entities

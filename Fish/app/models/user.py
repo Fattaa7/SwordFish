@@ -14,3 +14,5 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     workspaces = relationship("Workspace", back_populates="users")
+    conversations = relationship("Conversation", back_populates="user")
+    queries = relationship("Query", back_populates="users")

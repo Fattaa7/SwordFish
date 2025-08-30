@@ -15,3 +15,6 @@ class WorkspaceRepository:
         self.db.commit()
         self.db.refresh(workspace)
         return workspace
+    
+    def list_by_owner(self, owner_id: int):
+        return self.db.query(Workspace).filter(Workspace.owner_id == owner_id).all()

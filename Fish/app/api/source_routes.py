@@ -8,6 +8,21 @@ from typing import List
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/sources", tags=["Sources"])
 
+
+
+@router.get("/sources/{source_id}/download")
+def download_source(workspace_id: int, source_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Download a source file by its ID"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        return SourceService.download_source(db, source_id, workspace_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+
+
 @router.post("/upload", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
 async def upload_file(
     workspace_id: int,

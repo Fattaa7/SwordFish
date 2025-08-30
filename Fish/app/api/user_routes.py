@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     try:
         return UserService.register_user(db, user.email, user.password)
@@ -20,6 +20,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
         access_token = UserService.login_user(db, form_data.username, form_data.password)
+        print(access_token)
         return access_token
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

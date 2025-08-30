@@ -15,12 +15,14 @@ class ChunkRepository:
     def bulk_create(self, chunk_instances: list):
         """Bulk create chunk instances in the database."""
         self.db.bulk_save_objects(chunk_instances)
+        print(f"Bulk created {len(chunk_instances)} chunks.")
         self.db.commit()
+        print("Database commit completed.")
 
     def get_by_document_id(self, document_id: int):
         return self.db.query(Chunk).filter(Chunk.document_id == document_id).first()
     
-    def search_similar_chunks(self, embedding: list, workspace_id: int, top_k: int = 5) -> List[Chunk]:
+    def search_similar_chunks(self, embedding: list, workspace_id: int, top_k: int = 10) -> List[Chunk]:
         """
         Search for the most similar chunks based on the provided embedding.
         Uses pgvector's <-> operator (cosine distance).

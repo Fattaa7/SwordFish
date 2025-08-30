@@ -17,3 +17,5 @@ class Workspace(Base):
 
     users = relationship("User", back_populates="workspaces")
     sources = relationship("Source", back_populates="workspace")
+    conversations = relationship("Conversation", back_populates="workspace")
+    queries = relationship("Query", back_populates="workspaces")
