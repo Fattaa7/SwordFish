@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: int
     OPENAI_API_KEY: str
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_DB: int
 
     SECRET_KEY: str = "your-secret-key-here-change-in-production"
     ALGORITHM: str = "HS256"

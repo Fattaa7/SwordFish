@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from app.tasks.document_tasks import process_file_task
 from app.schemas.document_schema import DocumentCreate, MetaModel
 from app.services.document_service import DocumentService
 from app.utility.metadata_extractor import MetadataExtractor
@@ -19,6 +20,7 @@ from typing import List
 from fastapi.responses import FileResponse
 
 
+
 class SourceService:
 
     @staticmethod
@@ -26,20 +28,13 @@ class SourceService:
         """Upload a file and create a source with extracted metadata"""
         temp_path = None
         try:
-            # Create a temporary file to store the upload
-            # Handle case where filename might be None or have no extension
-            file_extension = ""
-            if file.filename:
-                file_extension = os.path.splitext(file.filename)[1] or ""
-            
-            with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
-                # Copy the uploaded file to the temporary file
-                shutil.copyfileobj(file.file, temp_file)
-                temp_path = temp_file.name
-            
+            # Use the helper function to create a temporary file
+            temp_path = create_temp_file(file)
+
             # Create source data
             source_data = SourceCreate(type=SourceType.FILE, storage_path=temp_path, url=None)
             
+            ### Use Celery task to process the file in background ###
             # Create source and extract metadata
             return SourceService.create_source(db, workspace_id, source_data, owner_id)
             
@@ -49,6 +44,38 @@ class SourceService:
                 os.unlink(temp_path)
             raise e
         
+    @staticmethod
+    def create_document(db: Session, created: SourceResponse, owner_id: int) -> None:
+        """
+        Creates a document associated with a source.
+
+        Args:
+            db (Session): Database session.
+            source_meta (dict): Extracted metadata from the source.
+            source (SourceCreate): The source data.
+            created: The created source object.
+            owner_id (int): ID of the owner.
+        """
+        # Extract metadata from the source
+        source_meta = SourceService._extract_source_metadata(created)
+
+        # Create document creation request
+        document = DocumentCreate(
+            title=source_meta["title"],
+            language=source_meta["language"],
+            source_path=created.storage_path,
+            meta=MetaModel(
+                author=source_meta["meta"]["author"],
+                pages=source_meta["meta"]["pages"],
+                tags=source_meta["meta"]["tags"]
+            )
+        )
+
+        # Create document associated with the source
+        DocumentService.create(db, document=document, source_id=created.id, owner_id=owner_id)
+
+
+
     @staticmethod
     def create_source(db: Session, workspace_id: int, source: SourceCreate, owner_id: int) -> SourceResponse:
         repo = SourceRepository(db)
@@ -61,30 +88,13 @@ class SourceService:
         # Create source via repository
         created = repo.create(source=source, workspace_id=workspace_id)
 
-
-
         ############# Create associated document #############
         if not created:
             raise ValueError("Failed to create source")
 
-        # Extract metadata from the source
-        source_meta = SourceService._extract_source_metadata(created, source)
-        print(f"Extracted metadata: {source_meta}")
 
-        # Create document creation request
-        document = DocumentCreate(
-            title=source_meta["title"],
-            language=source_meta["language"],
-            source_path=source.storage_path,
-            meta=MetaModel(
-                author=source_meta["meta"]["author"],
-                pages=source_meta["meta"]["pages"],
-                tags=source_meta["meta"]["tags"]
-            )
-        )
-
-        # Create document associated with the source
-        DocumentService.create(db, document=document, source_id=created.id, owner_id=owner_id)
+        # Use the new helper method to create the document
+        process_file_task.delay(created.id, owner_id)
 
         return created
 
@@ -155,19 +165,19 @@ class SourceService:
         return repo.delete(source_id)
     
     @staticmethod
-    def _extract_source_metadata(source: SourceResponse, source_create: SourceCreate) -> dict:
+    def _extract_source_metadata(source: SourceResponse) -> dict:
         """
         Extract metadata from the source based on its type and content
         """
         try:
-            if source_create.type == SourceType.FILE and source_create.storage_path:
+            if source.type == SourceType.FILE and source.storage_path:
                 # For file uploads, extract metadata from the file
-                if os.path.exists(source_create.storage_path):
-                    metadata = MetadataExtractor.extract_metadata(source_create.storage_path)
+                if os.path.exists(source.storage_path):
+                    metadata = MetadataExtractor.extract_metadata(source.storage_path)
                 else:
                     # If file doesn't exist on disk, use basic metadata
                     metadata = {
-                        "title": os.path.basename(source_create.storage_path),
+                        "title": os.path.basename(source.storage_path),
                         "language": "unknown",
                         "meta": {
                             "author": None,
@@ -175,10 +185,10 @@ class SourceService:
                             "tags": []
                         }
                     }
-            elif source_create.type == SourceType.URL and source_create.url:
+            elif source.type == SourceType.URL and source.url:
                 # For URLs, extract basic metadata
                 metadata = {
-                    "title": f"Document from {source_create.url}",
+                    "title": f"Document from {source.url}",
                     "language": "unknown",
                     "meta": {
                         "author": None,
@@ -212,3 +222,23 @@ class SourceService:
                     "error": str(e)
                 }
             }
+        
+
+def create_temp_file(file: UploadFile) -> str:
+    """
+    Creates a temporary file from an uploaded file.
+
+    Args:
+        file (UploadFile): The uploaded file.
+
+    Returns:
+        str: The path to the temporary file.
+    """
+    file_extension = ""
+    if file.filename:
+        file_extension = os.path.splitext(file.filename)[1] or ""
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+        shutil.copyfileobj(file.file, temp_file)
+        return temp_file.name
+

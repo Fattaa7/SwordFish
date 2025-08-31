@@ -19,32 +19,59 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: swordfish_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   web:
     build: 
-      context: ..  # Build from parent directory (root of project)
+      context: ..
       dockerfile: docker/Dockerfile
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
-    environment:
-      - POSTGRES_USER=swordfish_user
-      - POSTGRES_PASSWORD=swordfish_password
-      - POSTGRES_DB=swordfish_db
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - DEBUG=True
+    env_file:
+      - ../Fish/.env
     volumes:
-      # Mount the Fish directory from parent directory for live development
+      - uploads:/tmp
       - ../Fish:/app
-      # Exclude __pycache__ and .pyc files
       - /app/__pycache__
       - /app/**/__pycache__
       - /app/**/*.pyc
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     env_file:
       - ../Fish/.env
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ../Fish:/app
+      - uploads:/tmp
+    command: celery -A app.celery:celery_app worker --loglevel=info
 
 volumes:
   pgdata:
+  redisdata:
+  uploads:

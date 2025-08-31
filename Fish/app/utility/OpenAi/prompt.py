@@ -1,8 +1,9 @@
 from openai import OpenAI
-import os
+from app.core.config import settings
 
 # Initialize the OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
 
 def ask_openai(query: str, context: list[str]) -> str:
     """

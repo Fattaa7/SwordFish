@@ -11,7 +11,7 @@ router = APIRouter(prefix="/workspaces/{workspace_id}/sources", tags=["Sources"]
 
 
 @router.get("/sources/{source_id}/download")
-def download_source(workspace_id: int, source_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def download_source(workspace_id: int, source_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Download a source file by its ID"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -24,12 +24,7 @@ def download_source(workspace_id: int, source_id: int, db: Session = Depends(get
 
 
 @router.post("/upload", response_model=SourceResponse, status_code=status.HTTP_201_CREATED)
-async def upload_file(
-    workspace_id: int,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
+async def upload_file(workspace_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Upload a file and create a source with extracted metadata"""
     try:
         return SourceService.upload_file(db, workspace_id, file, current_user.id)
