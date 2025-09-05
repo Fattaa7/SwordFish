@@ -5,45 +5,49 @@ from app.core.config import settings
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
-def ask_openai(query: str, context: list[str]) -> str:
-    """
-    Sends a query to OpenAI with a given context.
-
-    Args:
-        query (str): The user query.
-        context (list[str]): A list of context strings that will be set as system messages.
-
-    Returns:
-        str: The LLM's reply as plain text.
-    """
-    # Build system messages from context
-    system_messages = [{"role": "system", "content": c} for c in context]
+def ask_openai(query: str, context: list[str]) -> dict:
+    context_with_ids = [f"chunk_id={i} | {c}" for i, c in enumerate(context)]
+    system_messages = [{"role": "system", "content": c} for c in context_with_ids]
     system_messages.insert(0, {
         "role": "system",
-        "content": "Only use the context as reference and don't get any data from outside of it, \
-            provide citations for everything you use, \
-                and add the citations again at the end of the answer along with reference title. Never point to the context above directly and only use it as reference for you, and provide citations."
+        "content": (
+            "You are a retrieval QA assistant. "
+            "Answer ONLY using the provided chunks. "
+            "you can use logical reasoning but do not make up facts. "
+            "When you use information from a chunk, add an inline citation like [chunk_id]. chunk_id is the number after 'chunk_id=' in the chunk. "
+            "At the end of the answer, provide a References section listing each citation in the format:\n"
+            "- {title} (Page {page_number}) [chunk_id]\n"
+            "DO NOT cite chunk_ids that were not used in the answer. "
+            "DO not write chunk_id, just the number in brackets. "
+            "After your answer, output JSON in the format:\n"
+            "{\"used_chunk_ids\": [list of chunk_ids you used]}"
+        )
     })
 
-    # Add user query
     messages = system_messages + [{"role": "user", "content": query}]
-    print("Messages sent to OpenAI:", messages)
-
-       # Stream response
-    with client.responses.stream(
-        model="gpt-4.1",
-        input=messages,
-    ) as stream:
-        print("\nAssistant:\n")
-        for event in stream:
-            if event.type == "response.output_text.delta":
-                print(event.delta, end="", flush=True)
-            elif event.type == "response.error":
-                print("\n[Error]", event.error)
-
-        print("\n\n--- Completed ---\n")
-
-        # Get structured entities
+    with client.responses.stream(model="gpt-4.1", input=messages) as stream:
         final_response = stream.get_final_response()
-        entities = final_response.output[0].content[0].text
-        return entities
+        full_text = final_response.output[0].content[0].text
+
+    import re, json
+    match = re.search(r"\{.*\}", full_text, re.DOTALL)
+    used_ids = []
+    if match:
+        try:
+            used_ids = json.loads(match.group(0)).get("used_chunk_ids", [])
+        except json.JSONDecodeError:
+            pass
+
+    answer_text = full_text[:match.start()].strip() if match else full_text
+    return {"answer": answer_text, "used_chunk_ids": used_ids}
+
+
+def ask_openai_simple(prompt: str) -> str:
+    response = client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content

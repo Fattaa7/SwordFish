@@ -11,6 +11,6 @@ def rerank(query, documents):
         model="rerank-v3.5",
         query=query,
         documents=documents,
-        top_n=len(documents),
+        top_n=5,
     )
     return response

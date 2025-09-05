@@ -4,7 +4,8 @@ from app.models.chunk import Chunk
 from app.repositories.chunk_repository import ChunkRepository
 from app.utility.text_extractor import split_markdown_into_pages
 from app.utility.chunker import chunk_markdown_text
-from app.utility.OpenAi.embedding import batch_get_chunk_embeddings, get_chunk_embedding  # must support batch input
+from app.utility.OpenAi.embedding_mock import batch_get_chunk_embeddings, get_chunk_embedding  # must support batch input
+
 
 
 class ChunkService:

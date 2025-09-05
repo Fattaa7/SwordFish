@@ -33,3 +33,8 @@ class ConversationRepository:
             )
             .all()
         )
+    
+    def update(self, conv: Conversation) -> ConversationResponse:
+        self.db.commit()
+        self.db.refresh(conv)
+        return conv

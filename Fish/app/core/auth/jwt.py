@@ -4,7 +4,7 @@ from app.core.config import settings
 
 
 
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=10080)):
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire})

@@ -226,19 +226,35 @@ class SourceService:
 
 def create_temp_file(file: UploadFile) -> str:
     """
-    Creates a temporary file from an uploaded file.
+    Saves an uploaded file to a temporary directory with its original filename.
+    If a file with the same name already exists, appends _1, _2, etc.
 
     Args:
         file (UploadFile): The uploaded file.
 
     Returns:
-        str: The path to the temporary file.
+        str: The path to the saved temporary file.
     """
-    file_extension = ""
-    if file.filename:
-        file_extension = os.path.splitext(file.filename)[1] or ""
+    # Ensure we have a temporary directory
+    temp_dir = tempfile.gettempdir()
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
-        shutil.copyfileobj(file.file, temp_file)
-        return temp_file.name
+    # Get original name safely
+    base_name = os.path.splitext(file.filename or "uploaded_file")[0]
+    extension = os.path.splitext(file.filename or "")[1]
 
+    # Start with the original name
+    final_name = f"{base_name}{extension}"
+    final_path = os.path.join(temp_dir, final_name)
+
+    # If it exists, append _1, _2, etc.
+    counter = 1
+    while os.path.exists(final_path):
+        final_name = f"{base_name}_{counter}{extension}"
+        final_path = os.path.join(temp_dir, final_name)
+        counter += 1
+
+    # Save file contents
+    with open(final_path, "wb") as out_file:
+        shutil.copyfileobj(file.file, out_file)
+
+    return final_path

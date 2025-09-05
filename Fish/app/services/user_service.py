@@ -1,9 +1,13 @@
+import os
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import UserCreate
 from app.core.auth.password import hash_password, verify_password
 from app.schemas.token_schema import Token
 from app.core.auth.jwt import create_access_token
+from app.core.config import settings
+import requests
 
 class UserService:
     @staticmethod
@@ -45,3 +49,52 @@ class UserService:
             raise ValueError("User not found")
         
         return user
+    
+    @staticmethod
+    def handle_google_callback(db: Session, code: str) -> Token:
+        token_url = "https://oauth2.googleapis.com/token"
+        data = {
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code",
+        }
+
+        token_response = requests.post(token_url, data=data)
+        if token_response.status_code != 200:
+            raise ValueError(f"Failed to obtain tokens: {token_response.text}")
+
+        tokens = token_response.json()
+        access_token = tokens.get("access_token")
+        if not access_token:
+            raise ValueError("Google did not return access_token")
+
+        # ✅ Use userinfo endpoint
+        user_info_resp = requests.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        if user_info_resp.status_code != 200:
+            raise ValueError(f"Failed to fetch user info: {user_info_resp.text}")
+
+        user_info = user_info_resp.json()
+        email = user_info.get("email")
+        if not email:
+            raise ValueError("Google account has no email")
+
+        repo = UserRepository(db)
+        user = repo.get_by_email(email)
+        if not user:
+            random_password = os.urandom(16).hex()
+            hashed_pw = hash_password(random_password)
+            user_data = UserCreate(email=email, password=hashed_pw)
+            user = repo.create(user_data)
+
+        access_token = create_access_token(data={"sub": user.email})
+        return RedirectResponse(
+            url=f"http://localhost:3000/?token={access_token}"
+)
+    
+
+
