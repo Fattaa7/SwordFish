@@ -6,11 +6,11 @@ co = cohere.ClientV2(
 )  # Get your free API key here: https://dashboard.cohere.com/api-keys
 
 
-def rerank(query, documents):
+def rerank(query, documents) -> cohere.v2.types.V2RerankResponse:
     response = co.rerank(
         model="rerank-v3.5",
         query=query,
         documents=documents,
-        top_n=5,
+        top_n=10,
     )
     return response

@@ -43,3 +43,8 @@ class ConversationService:
     def get_conversation(db: Session, conversation_id: int, workspace_id: int, user_id: int) -> Conversation | None:
         repo = ConversationRepository(db)
         return repo.get_by_id(conversation_id, workspace_id, user_id)
+    
+    @staticmethod
+    def delete_all_conversations(db: Session, workspace_id: int, user_id: int):
+        repo = ConversationRepository(db)
+        conversations = repo.delete_all(workspace_id)

@@ -34,6 +34,10 @@ class ConversationRepository:
             .all()
         )
     
+    def delete_all(self, workspace_id: int):
+        self.db.query(Conversation).filter(Conversation.workspace_id == workspace_id).delete()
+        self.db.commit()
+    
     def update(self, conv: Conversation) -> ConversationResponse:
         self.db.commit()
         self.db.refresh(conv)

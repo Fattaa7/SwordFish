@@ -19,6 +19,7 @@ def ask_openai(query: str, context: list[str]) -> dict:
             "- {title} (Page {page_number}) [chunk_id]\n"
             "DO NOT cite chunk_ids that were not used in the answer. "
             "DO not write chunk_id, just the number in brackets. "
+            "IF no citations are used, do not include a References section. "
             "After your answer, output JSON in the format:\n"
             "{\"used_chunk_ids\": [list of chunk_ids you used]}"
         )

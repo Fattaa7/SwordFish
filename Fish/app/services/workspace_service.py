@@ -46,7 +46,7 @@ class WorkspaceService:
         # turn to list of texts
         similar_chunks = [f"{chunk.text}\n\n{chunk.title} (Page {chunk.page_number})" for chunk in similar_chunks]
 
-        print(f"Similar Chunks: {similar_chunks}")
+        # print(f"Similar Chunks: {similar_chunks}")
         
         # Step 3: Use OpenAI to generate a response
         response = ask_openai(query, similar_chunks)

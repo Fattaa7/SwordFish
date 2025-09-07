@@ -88,3 +88,13 @@ def list_answers(workspace_id: int, conversation_id: int, db: Session = Depends(
         return all_answers
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+def delete_all_conversations(workspace_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        ConversationService.delete_all_conversations(db, workspace_id, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

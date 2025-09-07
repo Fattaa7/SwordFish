@@ -38,11 +38,16 @@ class QueryService:
     
         list_of_texts = [chunk.text for chunk in similar_chunks]
         reranked_results = rerank(queryResponse.query_text, list_of_texts)
-        print(f"Reranked Results: {reranked_results}")
+        
+        # print(f"Reranked Results: {reranked_results}")
     
         # keep reranked chunks (could filter by score if you want)
-        filtered_chunks = [similar_chunks[rank.index] for rank in reranked_results.results]
-    
+        filtered_chunks = [
+            similar_chunks[rank.index]
+            for rank in reranked_results.results
+            if rank.relevance_score > 0.0
+        ]    
+
         print(f"Found {len(filtered_chunks)} similar chunks")
         if not filtered_chunks:
             return {"query": query, "response": "No relevant information found in the workspace."}
@@ -52,7 +57,7 @@ class QueryService:
             f"{chunk.text}\n\n{chunk.title} (Page {chunk.page_number})"
             for chunk in filtered_chunks
         ]
-        print(f"Similar Chunks: {prepared_chunks}")
+        # print(f"Similar Chunks: {prepared_chunks}")
     
         # Step 3: Use OpenAI
         result = ask_openai(queryResponse.query_text, prepared_chunks)
