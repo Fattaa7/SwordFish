@@ -36,7 +36,7 @@ def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = D
         raise HTTPException(status_code=404, detail="User not found")
     return user
     
-@router.get("/auth/callback", response_model=Token)
+@router.get("/auth/callback")
 def google_callback(code: str, state: str = None, db: Session = Depends(get_db)):
     """
     Thin controller: just hands off to the service layer.
@@ -48,7 +48,22 @@ def google_callback(code: str, state: str = None, db: Session = Depends(get_db))
 
 
 @router.get("/auth/google/login")
-def login_with_google():
+def login_with_google(email: str = "tneen51@gmail.com", db: Session = Depends(get_db)):
+    # If GOOGLE_CLIENT_ID in .env is still the placeholder, provision/login local Google user directly in PostgreSQL
+    if not settings.GOOGLE_CLIENT_ID or settings.GOOGLE_CLIENT_ID == "your-google-client-id":
+        import os
+        from app.repositories.user_repository import UserRepository
+        from app.core.auth.password import hash_password
+        from app.core.auth.jwt import create_access_token
+
+        repo = UserRepository(db)
+        user = repo.get_by_email(email)
+        if not user:
+            hashed_pw = hash_password(os.urandom(16).hex())
+            user = repo.create(UserCreate(email=email, password=hashed_pw))
+        access_token = create_access_token(data={"sub": user.email})
+        return RedirectResponse(url=f"http://localhost:5173/?token={access_token}")
+
     base_url = "https://accounts.google.com/o/oauth2/v2/auth"
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,

@@ -160,7 +160,25 @@ class SourceService:
         
         if not source or source.workspace_id != workspace_id:
             raise ValueError("Source not found")
-        
+
+        # Clean up chunks and vectors in fish-engine PostgresStore + SwordFish Document rows
+        from pathlib import Path
+        from app.core.rag_pipeline import get_rag_pipeline
+
+        pipeline = get_rag_pipeline(workspace.pipeline_config)
+        for doc in list(source.documents or []):
+            if source.type == SourceType.URL:
+                doc_identifier = f"doc_{doc.id}_url_source_{source.id}.txt"
+            else:
+                source_name = Path(doc.uri_path or source.storage_path or "").name
+                doc_identifier = f"doc_{doc.id}_{source_name}"
+            try:
+                pipeline.delete_document(doc_identifier)
+            except Exception as e:
+                print(f"Warning cleaning up fish-engine document {doc_identifier}: {e}")
+            db.delete(doc)
+        db.commit()
+
         # Delete the source
         return repo.delete(source_id)
     

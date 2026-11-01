@@ -25,6 +25,8 @@ app.mount("/files", StaticFiles(directory="/tmp"), name="files")
 origins = [
     "http://localhost:3000",  # Vue dev server
     "http://127.0.0.1:3000",  # just in case
+    "http://localhost:5173",  # React Vite dev server
+    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(

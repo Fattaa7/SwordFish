@@ -93,7 +93,7 @@ class UserService:
 
         access_token = create_access_token(data={"sub": user.email})
         return RedirectResponse(
-            url=f"http://localhost:3000/?token={access_token}"
+            url=f"http://localhost:5173/?token={access_token}"
 )
     
 
