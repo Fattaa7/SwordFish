@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     PROJECT_NAME: str
     PROJECT_VERSION: str
@@ -10,7 +11,10 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_HOST: str
     POSTGRES_PORT: int
-    OPENAI_API_KEY: str
+    OPENAI_API_KEY: str = ""
+    COHERE_API_KEY: str = ""
+    BEDROCK_API_KEY: str = ""
+    BEDROCK_REGION: str = "us-east-1"
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_DB: int
@@ -25,8 +29,9 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
-    
+
     def ret_database_url(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
 
 settings = Settings()

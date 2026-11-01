@@ -23,6 +23,10 @@ class AnswerRepository:
             .all()
         )
 
+    def list_by_query_id(self, query_id: int) -> list[AnswerResponse]:
+        """Alias for list_by_query."""
+        return self.list_by_query(query_id)
+
     def list_by_conversation(self, conversation_id: int) -> list[AnswerResponse]:
         """List all answers for a given conversation."""
         return (

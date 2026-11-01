@@ -1,9 +1,9 @@
 from datetime import datetime
 from sqlalchemy import CheckConstraint, Column, Integer, String, Text, ForeignKey, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
-
 
 
 class Workspace(Base):
@@ -13,6 +13,7 @@ class Workspace(Base):
     name = Column(String)
     owner_id = Column(Integer, ForeignKey("users.id"))
     plan = Column(String, default="free")
+    pipeline_config = Column(JSONB, nullable=True, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     users = relationship("User", back_populates="workspaces")

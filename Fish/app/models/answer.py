@@ -6,8 +6,6 @@ from sqlalchemy.orm import relationship
 from app.db.database import Base
 
 
-
-
 class Answer(Base):
     __tablename__ = "answers"
 
@@ -15,7 +13,8 @@ class Answer(Base):
     query_id = Column(Integer, ForeignKey("queries.id"), nullable=False)
     conversation_id = Column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
     text = Column(Text, nullable=False)
-    sources = Column(JSONB, nullable=True)
+    sources = Column(JSONB, nullable=True, default=list)
+    meta = Column(JSONB, nullable=True, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
