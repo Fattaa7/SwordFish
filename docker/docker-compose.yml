@@ -12,7 +12,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./postgresql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U swordfish_user -d swordfish_db"]
       interval: 10s
@@ -47,9 +47,12 @@ services:
       - "8000:8000"
     env_file:
       - ../Fish/.env
+    environment:
+      PYTHONPATH: /app:/fish-engine
     volumes:
       - uploads:/tmp
       - ../Fish:/app
+      - ../../fish-engine:/fish-engine
       - /app/__pycache__
       - /app/**/__pycache__
       - /app/**/*.pyc
@@ -66,8 +69,11 @@ services:
         condition: service_healthy
     env_file:
       - ../Fish/.env
+    environment:
+      PYTHONPATH: /app:/fish-engine
     volumes:
       - ../Fish:/app
+      - ../../fish-engine:/fish-engine
       - uploads:/tmp
     command: celery -A app.celery:celery_app worker --loglevel=info
 
