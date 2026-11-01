@@ -22,7 +22,9 @@ interface ChatViewProps {
 
 function formatMessageTime(iso: string): string {
   try {
-    const d = new Date(iso);
+    const normalized =
+      iso && !iso.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(iso) ? `${iso}Z` : iso;
+    const d = new Date(normalized);
     return d.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
@@ -189,7 +191,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
               const trace = meta?.trace;
               const isTraceOpen = openTraceTurnId === turn.id;
               const totalMs =
-                meta?.latency_ms ?? trace?.total_latency_ms ?? null;
+                trace?.total_latency_ms ?? meta?.latency_ms ?? null;
 
               return (
                 <div key={turn.id} className="space-y-4">
