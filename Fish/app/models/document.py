@@ -19,5 +19,4 @@ class Document(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     source = relationship("Source", back_populates="documents")
-    chunks = relationship("Chunk", back_populates="document")  # <-- add this
 
