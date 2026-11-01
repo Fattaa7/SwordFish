@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.schemas.query_schema import QueryCreate, QueryResponse
 from app.models.query import Query
 
+
 class QueryRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -20,12 +21,19 @@ class QueryRepository:
             .all()
         )
 
-    def get_by_id(self, query_id: int, conversation_id: int) -> QueryResponse | None:
-        return (
-            self.db.query(Query)
-            .filter(
-                Query.id == query_id,
-                Query.conversation_id == conversation_id
-            )
-            .first()
+    def get_by_id(
+        self,
+        query_id: int,
+        conversation_id: int,
+        workspace_id: int | None = None,
+        user_id: int | None = None,
+    ) -> QueryResponse | None:
+        query = self.db.query(Query).filter(
+            Query.id == query_id,
+            Query.conversation_id == conversation_id,
         )
+        if workspace_id is not None:
+            query = query.filter(Query.workspace_id == workspace_id)
+        if user_id is not None:
+            query = query.filter(Query.owner_id == user_id)
+        return query.first()

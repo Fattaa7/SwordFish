@@ -246,3 +246,17 @@ class QueryService:
             raise ValueError("Query not found or not yours")
 
         return AnswerRepository(db).list_by_query(query_id)
+
+    @staticmethod
+    def list_conversation_answers(
+        db: Session,
+        conversation_id: int,
+        workspace_id: int,
+        user_id: int,
+    ) -> list[AnswerResponse]:
+        conv_repo = ConversationRepository(db)
+        convo = conv_repo.get_by_id(conversation_id, workspace_id, user_id)
+        if not convo:
+            raise ValueError("Conversation not found or not yours")
+
+        return AnswerRepository(db).list_by_conversation(conversation_id)

@@ -90,14 +90,7 @@ def list_answers(workspace_id: int, conversation_id: int, db: Session = Depends(
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     try:
-        queries = QueryService.list_queries(db, conversation_id, workspace_id, current_user.id)
-        if not queries:
-            return []
-        all_answers = []
-        for query in queries:
-            answers = QueryService.list_answers(db, query.id, conversation_id, workspace_id, current_user.id)
-            all_answers.extend(answers)
-        return all_answers
+        return QueryService.list_conversation_answers(db, conversation_id, workspace_id, current_user.id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -252,3 +252,42 @@ def test_query_service_create_query_delegates_to_pipeline_ask():
         assert created_answer.sources[0]["metadata"]["title"] == "grok.pdf"
         assert created_answer.meta["rewritten_query"] == "How does KGS prevent key collisions?"
         assert created_answer.meta["trace"]["total_latency_ms"] == 910.0
+
+
+def test_query_service_list_answers_and_conversation_answers():
+    from app.repositories.query_repository import QueryRepository
+
+    mock_db = MagicMock()
+    repo = QueryRepository(mock_db)
+    repo.get_by_id(query_id=10, conversation_id=4, workspace_id=3, user_id=1)
+
+    with (
+        patch("app.services.query_service.ConversationRepository") as MockConvRepo,
+        patch("app.services.query_service.QueryRepository", wraps=QueryRepository),
+        patch("app.services.query_service.AnswerRepository") as MockAnsRepo,
+    ):
+        MockConvRepo.return_value.get_by_id.return_value = MagicMock(id=4)
+        mock_db.query.return_value.filter.return_value.filter.return_value.filter.return_value.first.return_value = MagicMock(id=10)
+        MockAnsRepo.return_value.list_by_query.return_value = [MagicMock(id=100, text="ans1")]
+        MockAnsRepo.return_value.list_by_conversation.return_value = [
+            MagicMock(id=100, text="ans1"),
+            MagicMock(id=101, text="ans2"),
+        ]
+
+        res_single = QueryService.list_answers(
+            db=mock_db,
+            query_id=10,
+            conversation_id=4,
+            workspace_id=3,
+            user_id=1,
+        )
+        assert len(res_single) == 1
+
+        res_convo = QueryService.list_conversation_answers(
+            db=mock_db,
+            conversation_id=4,
+            workspace_id=3,
+            user_id=1,
+        )
+        assert len(res_convo) == 2
+
